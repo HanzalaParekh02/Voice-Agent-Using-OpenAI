@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Voice Agent — Realtime</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: #08080f;
+      color: #e2e2f0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .card {
+      background: linear-gradient(160deg, #141420 0%, #0f0f1a 100%);
+      border: 1px solid #252538;
+      border-radius: 24px;
+      padding: 40px 36px;
+      width: 520px;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 6px
+    }
+
+    .logo {
+      font-size: 1.8rem
+    }
+
+    h1 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: #c4b5fd
+    }
+
+    .badge {
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: .08em;
+      background: rgba(124, 58, 237, .2);
+      color: #a78bfa;
+      border: 1px solid rgba(124, 58, 237, .4);
+      border-radius: 999px;
+      padding: 2px 8px;
+      margin-left: auto;
+    }
+
+    .subtitle {
+      font-size: 0.8rem;
+      color: #505070;
+      margin-bottom: 28px
+    }
+
+    /* Form */
+    label {
+      font-size: .73rem;
+      color: #6868a0;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      display: block;
+      margin-bottom: 4px
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      background: #0c0c18;
+      border: 1px solid #222236;
+      border-radius: 10px;
+      color: #e2e2f0;
+      padding: 9px 12px;
+      font-size: .85rem;
+      font-family: inherit;
+      margin-bottom: 14px;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: #6d28d9;
+      box-shadow: 0 0 0 3px rgba(109, 40, 217, .15)
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 60px
+    }
+
+    .row {
+      display: flex;
+      gap: 12px
+    }
+
+    .row>div {
+      flex: 1
+    }
+
+    /* Session button */
+    .btn-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      margin: 26px 0 22px;
+    }
+
+    #sessionBtn {
+      position: relative;
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      font-size: 2.1rem;
+      background: conic-gradient(from 135deg, #7c3aed, #4f46e5, #7c3aed);
+      color: #fff;
+      box-shadow: 0 0 28px rgba(109, 40, 217, .45);
+      transition: transform .15s, box-shadow .2s;
+    }
+
+    #sessionBtn:hover {
+      transform: scale(1.06);
+      box-shadow: 0 0 38px rgba(109, 40, 217, .65)
+    }
+
+    #sessionBtn.listening {
+      animation: breathe 2s ease-in-out infinite;
+      background: conic-gradient(from 135deg, #059669, #10b981, #059669);
+      box-shadow: 0 0 28px rgba(16, 185, 129, .5);
+    }
+
+    #sessionBtn.speaking {
+      animation: pulseFast .6s ease-in-out infinite;
+      background: conic-gradient(from 135deg, #7c3aed, #ec4899, #7c3aed);
+      box-shadow: 0 0 38px rgba(236, 72, 153, .5);
+    }
+
+    @keyframes breathe {
+
+      0%,
+      100% {
+        transform: scale(1)
+      }
+
+      50% {
+        transform: scale(1.08)
+      }
+    }
+
+    @keyframes pulseFast {
+
+      0%,
+      100% {
+        transform: scale(1)
+      }
+
+      50% {
+        transform: scale(1.05)
+      }
+    }
+
+    #statusText {
+      font-size: .82rem;
+      color: #505070;
+      letter-spacing: .03em;
+      text-align: center
+    }
+
+    #statusText.listening {
+      color: #34d399
+    }
+
+    #statusText.speaking {
+      color: #c084fc
+    }
+
+    #statusText.error {
+      color: #f87171
+    }
+
+    #statusText.ready {
+      color: #818cf8
+    }
+
+    /* Visualiser */
+    #visualiser {
+      width: 100%;
+      height: 44px;
+      border-radius: 8px;
+      background: #0c0c18;
+      border: 1px solid #1a1a30;
+      margin-bottom: 18px;
+      display: block;
+    }
+
+    /* Transcript panes */
+    .pane-label {
+      font-size: .68rem;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: #383858;
+      margin-bottom: 5px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #4b4b75;
+      display: inline-block
+    }
+
+    .dot.green {
+      background: #34d399
+    }
+
+    .dot.purple {
+      background: #a78bfa
+    }
+
+    .bubble {
+      background: #0c0c18;
+      border: 1px solid #1e1e38;
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-size: .85rem;
+      line-height: 1.65;
+      min-height: 54px;
+      color: #9090c0;
+      margin-bottom: 16px;
+      word-break: break-word;
+      white-space: pre-wrap;
+      transition: border-color .3s;
+    }
+
+    .bubble.has-content {
+      color: #d4d4f0;
+      border-color: #2a2a48
+    }
+
+    .bubble.agent {
+      border-color: #1e1e48;
+      background: #0d0d20
+    }
+
+    .bubble.agent.has-content {
+      color: #c4b5fd;
+      border-color: #3b3b72
+    }
+
+    /* Extras */
+    #extraInfo {
+      font-size: .75rem;
+      color: #363658;
+      min-height: 18px;
+      margin-top: -10px;
+      margin-bottom: 4px
+    }
+
+    /* Footer */
+    .tip {
+      font-size: .72rem;
+      color: #2a2a45;
+      text-align: center;
+      margin-top: 6px
+    }
+  </style>
+</head>
+
+<body>
+  <div class="card">
+    <div class="header">
+      <span class="logo">🎙️</span>
+      <h1>Voice Agent</h1>
+      <span class="badge">REALTIME</span>
+    </div>
+    <p class="subtitle">Speech-to-speech · OpenAI Realtime API · gpt-4o</p>
+
+    <!-- Config -->
+    <div>
+      <label>System Prompt</label>
+      <textarea id="prompt" rows="2">You are a helpful AI voice assistant. Be concise, warm, and friendly.</textarea>
+    </div>
+    <div class="row">
+      <div>
+        <label>Dialect</label>
+        <select id="dialect">
+          <option>American English</option>
+          <option>British English</option>
+          <option>Australian English</option>
+        </select>
+      </div>
+      <div>
+        <label>Language</label>
+        <select id="language">
+          <option value="en">English</option>
+          <option value="es">Spanish</option>
+          <option value="fr">French</option>
+          <option value="ar">Arabic</option>
+          <option value="de">German</option>
+        </select>
+      </div>
+      <div>
+        <label>Voice</label>
+        <select id="gender">
+          <option value="neutral">Alloy (neutral)</option>
+          <option value="male">Echo (male)</option>
+          <option value="female">Nova (female)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Visualiser -->
+    <canvas id="visualiser"></canvas>
+
+    <!-- Session button -->
+    <div class="btn-area">
+      <button id="sessionBtn" title="Start / Stop session">▶</button>
+      <span id="statusText">Click to start a live session</span>
+    </div>
+
+    <!-- Transcript -->
+    <div class="pane-label"><span class="dot green"></span> You said</div>
+    <div class="bubble" id="userTranscript">—</div>
+
+    <div class="pane-label"><span class="dot purple"></span> Agent reply</div>
+    <div class="bubble agent" id="agentReply">—</div>
+
+    <div id="extraInfo"></div>
+    <p class="tip">Server VAD active — just speak naturally. The agent responds automatically.</p>
+  </div>
+
+  <script>
+    // ── Config ──────────────────────────────────────────────────────────────────
+    const API_WS_BASE = "ws://localhost:8000";
+
+    // ── State ───────────────────────────────────────────────────────────────────
+    let ws = null;
+    let audioCtx = null;
+    let analyserNode = null;
+    let micStream = null;
+    let processorNode = null;
+    let animFrameId = null;
+    let sessionActive = false;
+    let outQueue = [];       // PCM16 chunks waiting to be played
+    let isPlayingAudio = false;
+
+    // ── DOM ─────────────────────────────────────────────────────────────────────
+    const sessionBtn = document.getElementById("sessionBtn");
+    const statusText = document.getElementById("statusText");
+    const userTranscript = document.getElementById("userTranscript");
+    const agentReply = document.getElementById("agentReply");
+    const extraInfo = document.getElementById("extraInfo");
+    const canvas = document.getElementById("visualiser");
+    const canvasCtx = canvas.getContext("2d");
+
+    // ── Session toggle ───────────────────────────────────────────────────────────
+    sessionBtn.addEventListener("click", () => {
+      if (sessionActive) endSession();
+      else startSession();
+    });
+
+    async function startSession() {
+      try {
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      } catch (e) {
+        setStatus("Mic access denied — allow microphone in browser", "error");
+        return;
+      }
+
+      const params = new URLSearchParams({
+        prompt: document.getElementById("prompt").value,
+        dialect: document.getElementById("dialect").value,
+        language: document.getElementById("language").value,
+        gender: document.getElementById("gender").value,
+      });
+
+      ws = new WebSocket(`${API_WS_BASE}/realtime/ws?${params}`);
+      ws.binaryType = "arraybuffer";
+
+      ws.onopen = () => {
+        setStatus("Connecting to OpenAI…", "ready");
+        sessionBtn.textContent = "⏹";
+        sessionActive = true;
+      };
+
+      ws.onmessage = handleServerMessage;
+
+      ws.onclose = () => {
+        setStatus("Session ended", "");
+        cleanupSession();
+      };
+
+      ws.onerror = () => {
+        setStatus("WebSocket error — is the server running?", "error");
+        cleanupSession();
+      };
+    }
+
+    function endSession() {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: "close" }));
+        ws.close();
+      }
+      cleanupSession();
+    }
+
+    function cleanupSession() {
+      sessionActive = false;
+      sessionBtn.textContent = "▶";
+      sessionBtn.className = "";
+      stopMic();
+      cancelAnimationFrame(animFrameId);
+    }
+
+    // ── Server messages ──────────────────────────────────────────────────────────
+    let agentTextBuffer = "";
+    let userTextBuffer = "";
+
+    function handleServerMessage(evt) {
+      const msg = JSON.parse(evt.data);
+
+      switch (msg.type) {
+        case "session_ready":
+          setStatus("Listening… speak now", "listening");
+          sessionBtn.className = "listening";
+          startMicCapture();
+          startVisualiser();
+          break;
+
+        case "audio_delta":
+          enqueueAudio(msg.data);
+          setStatus("Agent speaking…", "speaking");
+          sessionBtn.className = "speaking";
+          break;
+
+        case "response_done":
+          setStatus("Listening… speak now", "listening");
+          sessionBtn.className = "listening";
+          if (agentTextBuffer) {
+            agentReply.textContent = agentTextBuffer;
+            agentReply.classList.add("has-content");
+          }
+          agentTextBuffer = "";
+          break;
+
+        case "transcript_done":
+          userTranscript.textContent = msg.text || userTranscript.textContent;
+          userTranscript.classList.add("has-content");
+          userTextBuffer = "";
+          break;
+
+        case "response_text_delta":
+          agentTextBuffer += msg.text;
+          agentReply.textContent = agentTextBuffer;
+          agentReply.classList.add("has-content");
+          break;
+
+        case "error":
+          setStatus(`Error: ${msg.message}`, "error");
+          break;
+      }
+    }
+
+    // ── Mic capture → PCM16 → WebSocket ─────────────────────────────────────────
+    function startMicCapture() {
+      audioCtx = new AudioContext({ sampleRate: 24000 });
+      const source = audioCtx.createMediaStreamSource(micStream);
+
+      analyserNode = audioCtx.createAnalyser();
+      analyserNode.fftSize = 256;
+      source.connect(analyserNode);
+
+      // ScriptProcessor to grab raw PCM samples
+      processorNode = audioCtx.createScriptProcessor(4096, 1, 1);
+      source.connect(processorNode);
+      processorNode.connect(audioCtx.destination); // needed to keep it alive
+
+      processorNode.onaudioprocess = (e) => {
+        if (!ws || ws.readyState !== WebSocket.OPEN) return;
+        const float32 = e.inputBuffer.getChannelData(0);
+        const pcm16 = floatToPcm16(float32);
+        const b64 = arrayBufferToBase64(pcm16.buffer);
+        ws.send(JSON.stringify({ type: "audio", data: b64 }));
+      };
+    }
+
+    function stopMic() {
+      if (processorNode) { processorNode.disconnect(); processorNode = null; }
+      if (audioCtx) { audioCtx.close(); audioCtx = null; }
+      if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+      analyserNode = null;
+    }
+
+    // ── Audio playback (PCM16 → AudioContext) ───────────────────────────────────
+    let playbackCtx = null;
+    let nextPlayTime = 0;
+
+    function getPlaybackCtx() {
+      if (!playbackCtx || playbackCtx.state === "closed") {
+        playbackCtx = new AudioContext({ sampleRate: 24000 });
+        nextPlayTime = 0;
+      }
+      return playbackCtx;
+    }
+
+    function enqueueAudio(base64Pcm16) {
+      const bytes = base64ToArrayBuffer(base64Pcm16);
+      const int16 = new Int16Array(bytes);
+      const float32 = new Float32Array(int16.length);
+      for (let i = 0; i < int16.length; i++) float32[i] = int16[i] / 32768;
+
+      const ctx = getPlaybackCtx();
+      const buffer = ctx.createBuffer(1, float32.length, 24000);
+      buffer.copyToChannel(float32, 0);
+
+      const src = ctx.createBufferSource();
+      src.buffer = buffer;
+      src.connect(ctx.destination);
+
+      const now = ctx.currentTime;
+      if (nextPlayTime < now) nextPlayTime = now;
+      src.start(nextPlayTime);
+      nextPlayTime += buffer.duration;
+    }
+
+    // ── Canvas visualiser ────────────────────────────────────────────────────────
+    function startVisualiser() {
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
+
+      function draw() {
+        animFrameId = requestAnimationFrame(draw);
+        const W = canvas.width, H = canvas.height;
+        canvasCtx.clearRect(0, 0, W, H);
+
+        if (!analyserNode) return;
+        const data = new Uint8Array(analyserNode.frequencyBinCount);
+        analyserNode.getByteFrequencyData(data);
+
+        const barW = (W / data.length) * 2.2;
+        let x = 0;
+        data.forEach(v => {
+          const pct = v / 255;
+          const barH = pct * H;
+          const hue = 240 + pct * 80;
+          canvasCtx.fillStyle = `hsla(${hue},80%,65%,${0.4 + pct * 0.6})`;
+          canvasCtx.beginPath();
+          canvasCtx.roundRect(x, H - barH, barW - 1, barH, 2);
+          canvasCtx.fill();
+          x += barW + 1;
+        });
+      }
+      draw();
+    }
+
+    // ── Helpers ──────────────────────────────────────────────────────────────────
+    function setStatus(msg, cls) {
+      statusText.textContent = msg;
+      statusText.className = cls;
+    }
+
+    function floatToPcm16(float32) {
+      const pcm = new Int16Array(float32.length);
+      for (let i = 0; i < float32.length; i++) {
+        const s = Math.max(-1, Math.min(1, float32[i]));
+        pcm[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+      }
+      return pcm;
+    }
+
+    function arrayBufferToBase64(buffer) {
+      const bytes = new Uint8Array(buffer);
+      let binary = "";
+      bytes.forEach(b => binary += String.fromCharCode(b));
+      return btoa(binary);
+    }
+
+    function base64ToArrayBuffer(b64) {
+      const binary = atob(b64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      return bytes.buffer;
+    }
+  </script>
+</body>
+
+</html>
